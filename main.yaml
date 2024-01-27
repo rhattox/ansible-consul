@@ -88,3 +88,18 @@
           - nomad
           - waypoint
         state: present
+
+    - name: Start consul service
+      ansible.builtin.service:
+        name: consul
+        enabled: true
+
+    - name: Start vault service
+      ansible.builtin.service:
+        name: vault
+        enabled: true
+
+    - name: Start nomad service
+      ansible.builtin.service:
+        name: nomad
+        enabled: true
