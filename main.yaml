@@ -1,0 +1,90 @@
+---
+- name: Install Consul with Ansible
+  hosts: localhost
+  become: true
+
+  vars:
+    tmp_key_location: /tmp/hashicorp-archive-keyring.gpg
+    key_location: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  tasks:
+    - name: Retrieve system environment
+      block:
+        - name: Get the username running the deploy
+          become: false
+          register: host_username
+          changed_when: host_username.rc != 0
+          ansible.builtin.command: whoami
+
+        - name: Display Command Output
+          ansible.builtin.debug:
+            var: host_username.stdout
+
+        - name: Get System Architecture
+          register: get_system_arch
+          changed_when: get_system_arch.rc != 0
+          ansible.builtin.command: dpkg --print-architecture
+
+        - name: Display Command Output
+          ansible.builtin.debug:
+            var: get_system_arch.stdout
+
+        - name: Get Version Code Name
+          register: get_version_codename
+          changed_when: get_version_codename.rc != 0
+          ansible.builtin.shell: |
+            source /etc/os-release &&\
+            echo $VERSION_CODENAME
+          args:
+            executable: /bin/bash
+
+        - name: Display Command Output
+          ansible.builtin.debug:
+            var: get_version_codename.stdout
+
+    - name: Install Consul GPG Key
+      block:
+        - name: Download Consul GPG Key
+          ansible.builtin.get_url:
+            url: https://apt.releases.hashicorp.com/gpg
+            dest: "{{ tmp_key_location }}"
+            mode: "0777"
+
+        - name: Install GPG Key
+          register: apt_key
+          changed_when: apt_key.rc != 0
+          ansible.builtin.shell: |
+            cat {{ tmp_key_location }} | gpg --batch --yes --dearmor --quiet -o {{ key_location }}
+          args:
+            executable: /bin/bash
+
+        - name: Update file permission
+          ansible.builtin.file:
+            path: "{{ key_location }}"
+            mode: "0444"
+
+        - name: Remove tmp file
+          ansible.builtin.file:
+            path: "{{ tmp_key_location }}"
+            state: absent
+
+        - name: Update APT package cache
+          ansible.builtin.apt:
+            update_cache: true
+
+        - name: Install APT repository
+          ansible.builtin.apt_repository:
+            repo: "deb [signed-by={{ key_location }}] https://apt.releases.hashicorp.com {{ get_version_codename.stdout }} main"
+            state: present
+            filename: docker.list
+            update_cache: true
+
+    - name: Install Hashicorp Apps
+      ansible.builtin.apt:
+        name:
+          - consul
+          - packer
+          - terraform
+          - vault
+          - nomad
+          - waypoint
+        state: present
