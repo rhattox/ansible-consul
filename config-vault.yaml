@@ -1,0 +1,67 @@
+- name: Configure vault Server
+  hosts: localhost
+  become: true
+  gather_facts: true
+
+  vars:
+    vault_data_dir: /opt/vault
+    vault_config_dir: /etc/vault.d
+
+  tasks:
+    - name: Retrieve system environment
+      block:
+        - name: Display current IP address
+          ansible.builtin.debug:
+            var: ansible_default_ipv4.address
+
+        - name: Display current IP address
+          ansible.builtin.debug:
+            var: ansible_hostname
+
+    - name: Create a vaults folders
+      ansible.builtin.file:
+        path: "{{ vault_config_dir }}"
+        state: directory
+        owner: "vault"
+        group: "vault"
+        mode: "0755"
+
+    - name: Create a vaults folders
+      ansible.builtin.file:
+        path: "{{ vault_data_dir }}"
+        state: directory
+        owner: "vault"
+        group: "vault"
+        mode: "0755"
+
+    - name: Add vault config file
+      ansible.builtin.copy:
+        content: |
+          ui = true
+
+          storage "file" {
+            path = "{{ vault_data_dir }}/data"
+          }
+
+          # # HTTP listener
+          # listener "tcp" {
+          #  address = "0.0.0.0:8200"
+          #  tls_disable = 1
+          # }
+
+          # HTTPS listener
+          listener "tcp" {
+            address       = "0.0.0.0:8200"
+            tls_cert_file = "{{ vault_data_dir }}/tls/tls.crt"
+            tls_key_file  = "{{ vault_data_dir }}/tls/tls.key"
+          }
+
+        dest: "{{ vault_config_dir }}/vault.hcl"
+        owner: "vault"
+        group: "vault"
+        mode: "0644"
+
+    - name: Start vault service
+      ansible.builtin.service:
+        name: vault
+        state: restarted

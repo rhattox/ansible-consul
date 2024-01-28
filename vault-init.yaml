@@ -1,0 +1,30 @@
+- name: Initialize Vault
+  hosts: localhost
+  gather_facts: false
+  become: true
+  vars:
+    vault_bin_path: "/usr/bin/vault" # Replace with the actual path to your Vault binary
+    vault_data_dir: "/opt/vault"
+
+  tasks:
+    - name: Initialize Vault
+      register: init_vault
+      changed_when: init_vault.rc != 0
+      ansible.builtin.shell: "{{ vault_bin_path }} operator init -key-shares=1 -key-threshold=1 -format=yaml -tls-skip-verify"
+      args:
+        executable: "/bin/bash"
+
+    - name: Display Results
+      ansible.builtin.debug:
+        msg: " {{ init_vault.stdout }}"
+      when: init_vault.rc == 0 # Only display results if the command was successful
+
+    - name: Add vault unseal keys
+      ansible.builtin.copy:
+        content: |
+          {{ init_vault.stdout }}
+        dest: "{{ vault_data_dir }}/vault.keys"
+        owner: "vault"
+        group: "vault"
+        mode: "0644"
+      when: init_vault.rc == 0
