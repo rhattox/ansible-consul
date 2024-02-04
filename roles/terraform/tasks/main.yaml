@@ -1,4 +1,4 @@
-- name: Install Hashicorp Apps
+- name: Install Terraform Apps
   ansible.builtin.apt:
     name:
       - terraform=1.7.1-1

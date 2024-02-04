@@ -1,5 +1,5 @@
-- name: Install Hashicorp Apps
+- name: Install Nomad Apps
   ansible.builtin.apt:
     name:
-      - nomad=1.7.3-1
+      - nomad={{ nomad_version }}
     state: present

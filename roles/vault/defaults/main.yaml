@@ -1,3 +1,4 @@
 vault_data_dir: /opt/vault
 vault_config_dir: /etc/vault.d
 vault_bin_path: "/usr/bin/vault" # Replace with the actual path to your Vault binary
+vault_version: 1.15.4-1

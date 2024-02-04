@@ -1,5 +1,5 @@
-- name: Install Hashicorp Apps
+- name: Install Packar Apps
   ansible.builtin.apt:
     name:
-      - packer=1.6.6+ds2-1+b1
+      - packer={{ packer_version }}
     state: present

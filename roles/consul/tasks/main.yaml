@@ -1,7 +1,7 @@
 - name: Install Consul
   ansible.builtin.apt:
     name:
-      - consul=1.17.2-1
+      - consul={{ consul_version }}
 
 - name: Create consul data dir
   ansible.builtin.file:
