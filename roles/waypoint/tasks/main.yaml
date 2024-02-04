@@ -1,0 +1,5 @@
+- name: Install Hashicorp Apps
+  ansible.builtin.apt:
+    name:
+      - waypoint=0.11.4-1
+    state: present

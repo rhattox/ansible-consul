@@ -1,0 +1,28 @@
+- name: Install Consul
+  ansible.builtin.apt:
+    name:
+      - consul=1.17.2-1
+
+- name: Create consul data dir
+  ansible.builtin.file:
+    path: "{{ consul_data_dir }}"
+    state: directory
+    owner: "consul"
+    group: "consul"
+    mode: "0755"
+
+- name: Create consul config dir
+  ansible.builtin.file:
+    path: "{{ consul_config_dir }}"
+    state: directory
+    owner: "consul"
+    group: "consul"
+    mode: "0755"
+
+- name: Add consul config file
+  ansible.builtin.template:
+    src: roles/consul/templates/consul.hcl.j2
+    dest: "{{ consul_config_dir }}/consul.hcl"
+    owner: "consul"
+    group: "consul"
+    mode: "0644"

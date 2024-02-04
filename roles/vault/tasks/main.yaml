@@ -1,0 +1,98 @@
+- name: Install Hashicorp Apps
+  ansible.builtin.apt:
+    name:
+      - vault=1.15.4-1
+    state: present
+
+- name: Configure Files
+  block:
+    - name: Create vault config dir
+      ansible.builtin.file:
+        path: "{{ vault_config_dir }}"
+        state: directory
+        owner: "vault"
+        group: "vault"
+        mode: "0755"
+
+    - name: Create vault data dir
+      ansible.builtin.file:
+        path: "{{ vault_data_dir }}"
+        state: directory
+        owner: "vault"
+        group: "vault"
+        mode: "0755"
+
+    - name: Add vault config file
+      ansible.builtin.template:
+        src: roles/vault/templates/vault.hcl.j2
+        dest: "{{ vault_config_dir }}/vault.hcl"
+        owner: "vault"
+        group: "vault"
+        mode: "0644"
+
+    - name: Add vault env file
+      ansible.builtin.template:
+        src: roles/vault/templates/vault.env.j2
+        dest: "{{ vault_config_dir }}/vault.env"
+        owner: "vault"
+        group: "vault"
+        mode: "0644"
+
+- name: Initialize Vault
+  block:
+    - name: Ensure Consul service is started
+      ansible.builtin.service:
+        name: vault
+        state: started
+
+    - name: Initialize Vault
+      register: init_vault
+      changed_when: init_vault.rc != 0
+      ansible.builtin.shell: "{{ vault_bin_path }} operator init -key-shares=1 -key-threshold=1 -format=yaml -tls-skip-verify"
+      args:
+        executable: "/bin/bash"
+
+    - name: Display Results
+      ansible.builtin.debug:
+        msg: "{{ init_vault.stdout }}"
+      when: init_vault.rc == 0 # Only display results if the command was successful
+
+    - name: Add vault unseal keys
+      ansible.builtin.copy:
+        content: |
+          {{ init_vault.stdout }}
+        dest: "{{ vault_data_dir }}/vault.keys"
+        owner: "vault"
+        group: "vault"
+        mode: "0644"
+      when: init_vault.rc == 0
+
+- name: Vaul Unseal
+  block:
+    - name: Include Variables from File
+      ansible.builtin.include_vars:
+        file: "{{ vault_data_dir }}/vault.keys"
+
+    - name: Vault Status
+      register: vault_status
+      changed_when: vault_status.rc != 2
+      ignore_errors: true
+      ansible.builtin.shell: "{{ vault_bin_path }} status -tls-skip-verify"
+      args:
+        executable: "/bin/bash"
+
+    - name: Unseal Vault
+      register: unseal_vault
+      changed_when: unseal_vault.rc != 0
+      ansible.builtin.shell: "{{ vault_bin_path }} operator unseal -tls-skip-verify {{ unseal_keys_b64[0] }}"
+      args:
+        executable: "/bin/bash"
+      when: vault_status.rc == 2
+
+    - name: Authenticate with Root Token
+      register: root_token
+      changed_when: root_token.rc != 0
+      ansible.builtin.shell: "{{ vault_bin_path }} login -tls-skip-verify {{ root_token }}"
+      args:
+        executable: "/bin/bash"
+      when: unseal_vault.rc == 0 # Only authenticate if initialization was successful

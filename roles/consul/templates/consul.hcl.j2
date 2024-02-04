@@ -1,0 +1,12 @@
+datacenter = "{{ ansible_hostname }}-dc"
+data_dir   = "{{ consul_data_dir }}"
+log_level  = "DEBUG"
+node_name  = "{{ ansible_hostname }}"
+server     = true
+client_addr = "0.0.0.0"
+bind_addr  = "{{ ansible_default_ipv4.address }}"
+ui_config  = {
+    enabled = true
+    }
+bootstrap_expect = 1
+retry_join = ["{{ ansible_default_ipv4.address }}"]
