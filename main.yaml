@@ -4,10 +4,10 @@
   gather_facts: true
 
   roles:
-    # - common
-    # - consul
+    - common
+    - consul
     - vault
-    # - nomad
-    # - packer
-    # - terraform
-    # - waypoint
+    - nomad
+    - packer
+    - terraform
+    - waypoint
